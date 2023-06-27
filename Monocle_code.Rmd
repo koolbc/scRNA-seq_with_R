@@ -1,0 +1,46 @@
+Monocle
+
+```{r}
+library(SeuratWrappers)
+cds <- as.cell_data_set(WT_integrated)
+colData(cds)
+fData(cds)
+row.names(fData(cds))[1:10]
+fData(cds)$gene_short_name<-rownames(fData(cds))
+counts(cds)
+```
+
+```{r}
+cds <- cluster_cells(cds)
+plot_cells(cds, color_cells_by = "partition") + theme(legend.position = "right")
+```
+
+```{r}
+recreate.partition<-c(rep(1,length(cds@colData@rownames)))
+names(recreate.partition)<-cds@colData@rownames
+recreate.partition<-as.factor(recreate.partition)
+cds@clusters$UMAP$partitions<-recreate.partition
+list.cluster <- WT_integrated@active.ident
+cds@clusters$UMAP$clusters<-list.cluster
+cds@int_colData@listData$reducedDims$UMAP <- WT_integrated@reductions$umap@cell.embeddings
+```
+
+```{r}
+cds <- learn_graph(cds)
+cds<-order_cells(cds,reduction_method = "UMAP",root_cells = colnames(cds[,clusters(cds)==4]))
+plot_cells(cds,
+           color_cells_by = "pseudotime",
+           label_groups_by_cluster = FALSE,
+           label_branch_points = FALSE,
+           label_roots = FALSE,
+           label_leaves = FALSE)
+```
+
+```{r}
+pseudotime(cds)
+cds$monocle3_pseudotime <- pseudotime(cds)
+data.pseudo <- as.data.frame(colData(cds))
+
+ggplot(data.pseudo, aes(monocle3_pseudotime , reorder(seurat_clusters ,monocle3_pseudotime , median), fill = seurat_clusters)) + geom_boxplot()
+```
+
